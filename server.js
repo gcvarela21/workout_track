@@ -17,7 +17,8 @@ app.use(express.static("public"));
 
 mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost/workout", { useNewUrlParser: true });
 
-// app.use(require("./routes/routes.js"));
+app.use(require("./routes/api-routes.js"));
+app.use(require("./routes/html-routes.js"));
 
 app.listen(PORT, () => {
   console.log("app is running biatch! It be on port ${PORT}!");
