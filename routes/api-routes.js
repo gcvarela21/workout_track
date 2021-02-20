@@ -1,88 +1,164 @@
-const router = require("express").Router();
-const Workout = require("../models/workout.js");
-const path = require("path");
 
-router.get("/api/workouts", (req, res) => {
-    Workout.find({})
-        .then(data => {
-            res.json(data);
-        })
-        .catch(err => {
-            res.status(400).json(err);
-        });
-});
-
-router.post("api/workouts", ({ body }, res) => {
-    Workout.create(body)
-        .then(data => {
-            res.json(data);
-        })
-        .catch(err => {
-            res.status(400).json(err);
-        })
-});
-
-router.put("/api/workouts/:id", (req, res) => {
-    if (req.body.type === "cardio") {
-        Workout.updateOne(
-            {
-                _id: req.params.id
-            },
-            {
-                type: req.body.type,
-                name: req.body.name,
-                distance: req.body.distance,
-                duration: req.body.duration
-
-            },
-            (err, data) => {
-                if (err) {
-                    res.send(err);
-                } else {
-                    res.json(data);
-                }
-            }
-        );
-    } else if (req.body.type === "resistance") {
-        Workout.updateOne(
-            {
-                _id: req.params.id
-            },
-            {
-                type: req.body.type,
-                name: req.body.name,
-                weight: req.body.weight,
-                sets: req.body.sets,
-                reps: req.body.reps,
-                duration: req.body.duration
-            },
-            (err, data) => {
-                if (err) {
-                    res.send(err);
-                } else {
-                    res.json(data);
-                }
-            }
-        );
+ const router = require("express").Router();
+ const db = require("../models/workout.js");
+//// this wont work without the aggregate >.< or must have Find()
+ router.get("/api/workouts", (req, res) => {
+  db.aggregate([
+    {
+      $addFields: {
+        totalDuration: {
+          $sum: "$exercises.duration"
+        }
+      }
     }
+  ])
+    .then(dbWorkouts => {
+      res.json(dbWorkouts);
+      /// above does the find function({})respwan by showing me the db. this is what shows up in the page
+    })
+    .catch(err => {
+      console.log(err);
+      res.json(err);
+    });
+})
+
+
+ router.post("/api/workouts", ( { body },res)=>{
+    console.log(body);
+    db.create(body)
+    .then(dbWorkouts =>{
+      res.json(dbWorkouts)
+    })
+    .catch(err =>{
+      res.json(err);
+    });
+  })
+
+  router.put("/api/workouts/:id", (req,res)=>{
+    db.findOneAndUpdate (
+      { _id: req.params.id
+      },
+      {
+        $push: { exercises: req.body  }
+      }, 
+      { new: true, upsert: true })
+      .then(dbWorkouts =>{
+        res.json(dbWorkouts)
+      })
+      .catch(err =>{
+        res.json(err);
+      });   
+  });
+ 
+
+  router.get('/api/workouts/range', (req, res) => {
+    db.find({}).limit(7)
+      .then(sevenWorkouts => {
+        console.log("7-up");
+        res.json(sevenWorkouts);
+      })
+      .catch(err => {
+        console.log(err);
+        res.json(err);
+      });
+  })
+  module.exports = router;
     
-});
+ 
 
-router.get("/api/workouts/range", (req, res) => {
 
-});
 
-router.get("/stats", (req, res) => {
-    res.sendFile(path.join(__dirname, "/../public/stats.html"));
-});
 
-router.get("/exercise", (req, res) => {
-    // New Workout
-    res.sendFile(path.join(__dirname, "/../public/exercise.html"));
-});
 
-router.get("/exercise?", (req, res) => {
-    // Continue Workout
-});
 
-module.exports = router;
+
+
+
+
+
+
+
+
+
+
+// const router = require("express").Router();
+// const db = require("../models/workout.js");
+// const path = require("path");
+// // const workout = require("../models/workout.js");
+
+// module.exports = function(app){
+
+//     app.get("/api/workouts", (req, res) => {
+//         db.find({})
+//             .then(dbWorkouts => {
+//                 res.json(dbworkouts);
+//             })
+//             .catch(err => {
+//                 res.json(err);
+//                 console.log("you can't get none! no no no! ur find don't seem to wok lol");
+    
+//             });
+//     });
+    
+//     app.post("api/workouts", ({ body }, res) => {
+        
+//         db.create(body)
+//             .then(dbWorkouts => {
+//                 res.json(dbWorkouts);
+//             })
+//             .catch(err => {
+               
+//                 res.json(err);
+//             });
+//     });
+    
+//     app.put("/api/workouts/:id", (req, res) => { 
+//         db.findOneAndUpdate (
+//                 {
+//                     _id: req.params.id
+//                 },
+//                 {
+//                     $push: { exercises: req.body }
+//                 },
+//                 { new: true, upsert: true})
+//                 .then(dbWorkouts => {
+//                     res.json(dbWorkouts)
+//                 })
+//                 .catch(err => {
+//                     res.json(err);
+//                 });
+//             });
+    
+//     app.get("/api/workouts/range", (req,res) => {
+//         db.find({}).limit(7)
+//         .then(sevenWorkouts => {
+//             console.log(sevenWorkouts);
+//             res.json(sevenWorkouts);
+//         })
+//         .catch(err => {
+//             console.log("range error api");
+//             console.log(err);
+//             res.json(err);
+//         });
+//     });
+    
+    
+//    router.get("/api/workouts", (req,res)=>{
+//     db.aggregate( [
+//       {
+//         $addFields: {
+//           totalDuration: { $sum: "$exercises.duration" } 
+//         }
+//       }
+//    ] ).then(dbWorkouts =>{
+//          console.log (dbWorkouts)
+//         res.json(dbWorkouts)
+//       })
+//       .catch(err =>{
+//         res.json(err);
+//       });
+//     });
+
+
+// };
+
